@@ -9,6 +9,7 @@
 #include "duckdb/storage/storage_extension.hpp"
 #include "duckdb/planner/extension_callback.hpp"
 #include "duckdb/main/profiler_extension.hpp"
+#include "duckdb/function/replacement_scan.hpp"
 #include "duckdb/main/config.hpp"
 #include "duckdb/main/database.hpp"
 
@@ -33,6 +34,8 @@ struct ExtensionCallbackRegistry {
 	vector<shared_ptr<ExtensionCallback>> extension_callbacks;
 	//! Pluggable profiler / EXPLAIN tree renderers, keyed by format name
 	case_insensitive_map_t<shared_ptr<ProfilerExtension>> profiler_extensions;
+	//! Database-wide replacement scans, in registration order
+	vector<shared_ptr<ReplacementScan>> replacement_scans;
 };
 
 ExtensionCallbackManager &ExtensionCallbackManager::Get(ClientContext &context) {
@@ -143,6 +146,14 @@ void ExtensionCallbackManager::Register(const string &name, shared_ptr<ProfilerE
 	callback_registry.atomic_store(new_registry);
 }
 
+void ExtensionCallbackManager::Register(ReplacementScan scan) {
+	auto entry = make_shared_ptr<ReplacementScan>(std::move(scan));
+	lock_guard<mutex> guard(registry_lock);
+	auto new_registry = make_shared_ptr<ExtensionCallbackRegistry>(*callback_registry);
+	new_registry->replacement_scans.push_back(std::move(entry));
+	callback_registry.atomic_store(new_registry);
+}
+
 template <class T>
 ExtensionCallbackIteratorHelper<T>::ExtensionCallbackIteratorHelper(
     const vector<T> &vec, shared_ptr<ExtensionCallbackRegistry> callback_registry)
@@ -192,6 +203,12 @@ ExtensionCallbackIteratorHelper<shared_ptr<ExtensionCallback>> ExtensionCallback
 	auto registry = callback_registry.atomic_load();
 	auto &extension_callbacks = registry->extension_callbacks;
 	return ExtensionCallbackIteratorHelper<shared_ptr<ExtensionCallback>>(extension_callbacks, std::move(registry));
+}
+
+ExtensionCallbackIteratorHelper<shared_ptr<ReplacementScan>> ExtensionCallbackManager::ReplacementScans() const {
+	auto registry = callback_registry.atomic_load();
+	auto &replacement_scans = registry->replacement_scans;
+	return ExtensionCallbackIteratorHelper<shared_ptr<ReplacementScan>>(replacement_scans, std::move(registry));
 }
 
 optional_ptr<GrammarExtension> ExtensionCallbackManager::FindGrammarExtension(const string &name) const {
@@ -277,6 +294,10 @@ void ProfilerExtension::Register(DBConfig &config, const string &format_name, sh
 	config.GetCallbackManager().Register(format_name, std::move(extension));
 }
 
+void ReplacementScan::Register(DBConfig &config, ReplacementScan scan) {
+	config.GetCallbackManager().Register(std::move(scan));
+}
+
 optional_ptr<ProfilerExtension> ProfilerExtension::Find(const ClientContext &context, const string &format_name) {
 	return ExtensionCallbackManager::Get(context).FindProfilerExtension(format_name);
 }
@@ -288,5 +309,6 @@ template class ExtensionCallbackIteratorHelper<ParserExtension>;
 template class ExtensionCallbackIteratorHelper<shared_ptr<GrammarExtension>>;
 template class ExtensionCallbackIteratorHelper<shared_ptr<DialectExtension>>;
 template class ExtensionCallbackIteratorHelper<PlannerExtension>;
+template class ExtensionCallbackIteratorHelper<shared_ptr<ReplacementScan>>;
 
 } // namespace duckdb

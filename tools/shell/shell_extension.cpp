@@ -130,7 +130,7 @@ void ShellExtension::Load(ExtensionLoader &loader) {
 
 	auto &config = duckdb::DBConfig::GetConfig(loader.GetDatabaseInstance());
 	config.SetOptionByName("duckdb_api", DUCKDB_API_CLI);
-	config.replacement_scans.push_back(duckdb::ReplacementScan(duckdb::ShellScanLastResult));
+	duckdb::ReplacementScan::Register(config, duckdb::ReplacementScan(duckdb::ShellScanLastResult));
 
 	PlannerExtension planner_ext;
 	planner_ext.post_bind_function = duckdb::ShellPostBind;

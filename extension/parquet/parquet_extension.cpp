@@ -1098,7 +1098,7 @@ static void LoadInternal(ExtensionLoader &loader) {
 	loader.RegisterFunction(parquet_key_fun);
 
 	auto &config = DBConfig::GetConfig(db_instance);
-	config.replacement_scans.emplace_back(ParquetScanReplacement);
+	ReplacementScan::Register(config, ReplacementScan(ParquetScanReplacement));
 	config.AddExtensionOption("binary_as_string", "In Parquet files, interpret binary data as a string.",
 	                          LogicalType::BOOLEAN, Value(false));
 	config.AddExtensionOption("disable_parquet_prefetching", "Disable the prefetching mechanism in Parquet",

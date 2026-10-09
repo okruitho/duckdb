@@ -66,8 +66,8 @@ void duckdb_add_replacement_scan(duckdb_database db, duckdb_replacement_callback
 	scan_info->delete_callback = delete_callback;
 
 	auto &config = duckdb::DBConfig::GetConfig(*wrapper->database->instance);
-	config.replacement_scans.push_back(
-	    duckdb::ReplacementScan(duckdb::duckdb_capi_replacement_callback, std::move(scan_info)));
+	duckdb::ReplacementScan::Register(
+	    config, duckdb::ReplacementScan(duckdb::duckdb_capi_replacement_callback, std::move(scan_info)));
 }
 
 void duckdb_replacement_scan_set_function_name(duckdb_replacement_scan_info info_p, const char *function_name) {

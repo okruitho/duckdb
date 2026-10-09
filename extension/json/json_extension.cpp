@@ -63,8 +63,8 @@ static void LoadInternal(ExtensionLoader &loader) {
 	}
 
 	// JSON replacement scan
-	DBConfig::GetConfig(loader.GetDatabaseInstance())
-	    .replacement_scans.emplace_back(JSONFunctions::ReadJSONReplacement);
+	ReplacementScan::Register(DBConfig::GetConfig(loader.GetDatabaseInstance()),
+	                          ReplacementScan(JSONFunctions::ReadJSONReplacement));
 
 	// JSON copy function
 	auto copy_fun = JSONFunctions::GetJSONCopyFunction();

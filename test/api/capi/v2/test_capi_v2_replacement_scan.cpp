@@ -1,7 +1,9 @@
 #include "test_capi_v2.hpp"
 
+#include <atomic>
 #include <cstring>
 #include <string>
+#include <thread>
 #include <vector>
 
 // ---------------------------------------------------------------------------
@@ -108,6 +110,11 @@ void ReplClaimRange(duckdb_v2_replacement_scan_info_handle info, duckdb_v2_conte
 void ReplDecline(duckdb_v2_replacement_scan_info_handle info, duckdb_v2_context_handle,
                  duckdb_v2_error_info_handle *err) {
 	ReplRecordName(info, err);
+}
+
+// Declines without touching shared state, so it can run on any thread.
+void ReplDeclineQuietly(duckdb_v2_replacement_scan_info_handle, duckdb_v2_context_handle,
+                        duckdb_v2_error_info_handle *) {
 }
 
 // Claims only names ending in ".csv", so it can be shown to outrank the built-in CSV scan.
@@ -449,6 +456,54 @@ TEST_CASE("V2 replacement scan: connection scope and precedence", "[capi_v2][rep
 	REQUIRE(duckdb_v2_connection_create(fx.instance, &later, nullptr) == DUCKDB_V2_ERROR_NONE);
 	REQUIRE(ReplQueryI64(later, "SELECT * FROM anything") == std::vector<int64_t> {0, 1});
 	duckdb_v2_connection_destroy(&later);
+
+	duckdb_v2_connection_destroy(&other);
+}
+
+TEST_CASE("V2 replacement scan: instance registration while binding", "[capi_v2][replacement_scan]") {
+	EnvFixture fx;
+	duckdb_v2_connection_handle other = nullptr;
+	REQUIRE(duckdb_v2_connection_create(fx.instance, &other, nullptr) == DUCKDB_V2_ERROR_NONE);
+
+	// Every scan declines, so each bind walks the whole instance-wide list while it keeps growing.
+	constexpr idx_t SCAN_COUNT = 1000;
+	std::atomic<bool> done(false);
+	std::atomic<idx_t> queries(0);
+	std::atomic<idx_t> unexpected(0);
+	std::thread binder([&]() {
+		while (!done.load()) {
+			if (ReplQueryError(other, "SELECT * FROM repl_race_missing") != DUCKDB_V2_ERROR_DATABASE_CATALOG) {
+				unexpected++;
+			}
+			queries++;
+		}
+	});
+
+	idx_t failed_registrations = 0;
+	for (idx_t i = 0; i < SCAN_COUNT; i++) {
+		duckdb_v2_replacement_scan_handle scan = nullptr;
+		if (duckdb_v2_replacement_scan_create_with_instance(fx.instance, &scan, nullptr) != DUCKDB_V2_ERROR_NONE ||
+		    duckdb_v2_replacement_scan_set_callback(scan, ReplDeclineQuietly, nullptr) != DUCKDB_V2_ERROR_NONE ||
+		    duckdb_v2_replacement_scan_register(scan, nullptr) != DUCKDB_V2_ERROR_NONE) {
+			failed_registrations++;
+		}
+		duckdb_v2_replacement_scan_destroy(&scan);
+	}
+	done = true;
+	binder.join();
+
+	REQUIRE(failed_registrations == 0);
+	REQUIRE(queries.load() > 0);
+	REQUIRE(unexpected.load() == 0);
+
+	// Scans registered during the race are all consulted afterwards.
+	ReplReset();
+	duckdb_v2_replacement_scan_handle claim = nullptr;
+	REQUIRE(duckdb_v2_replacement_scan_create_with_instance(fx.instance, &claim, nullptr) == DUCKDB_V2_ERROR_NONE);
+	REQUIRE(duckdb_v2_replacement_scan_set_callback(claim, ReplClaimRange, nullptr) == DUCKDB_V2_ERROR_NONE);
+	REQUIRE(duckdb_v2_replacement_scan_register(claim, nullptr) == DUCKDB_V2_ERROR_NONE);
+	duckdb_v2_replacement_scan_destroy(&claim);
+	REQUIRE(ReplQueryI64(other, "SELECT * FROM repl_race_missing") == std::vector<int64_t> {0, 1});
 
 	duckdb_v2_connection_destroy(&other);
 }

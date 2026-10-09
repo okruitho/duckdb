@@ -17,6 +17,7 @@ namespace duckdb {
 
 class ClientContext;
 class TableRef;
+struct DBConfig;
 
 struct ReplacementScanData {
 public:
@@ -105,6 +106,9 @@ struct ReplacementScan {
 	static string GetFullPath(ReplacementScanInput &input) {
 		return GetFullPath(input.name);
 	}
+
+	//! Registers a database-wide replacement scan; safe while other connections are binding
+	DUCKDB_API static void Register(DBConfig &config, ReplacementScan scan);
 
 	replacement_scan_t function;
 	unique_ptr<ReplacementScanData> data;

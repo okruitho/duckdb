@@ -48,6 +48,7 @@ set(TEST_API_OBJECTS
     test_retained_result_collection.cpp
     test_plan_serialization.cpp
     test_relation_api.cpp
+    test_replacement_scan_api.cpp
     test_stream_result_buffer.cpp
     test_operator_memory_limit.cpp
     test_query_profiler.cpp

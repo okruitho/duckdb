@@ -583,11 +583,16 @@ void DatabaseInstance::Configure(DBConfig &new_config, const char *database_path
 		    *config.allocator, default_block_size, DBConfig::GetSystemAvailableMemory(*config.file_system) * 8 / 10,
 		    config.options.block_allocator_size);
 	}
-	config.replacement_scans = std::move(new_config.replacement_scans);
 	if (new_config.callback_manager) {
 		config.callback_manager = std::move(new_config.callback_manager);
 		new_config.callback_manager = make_uniq<ExtensionCallbackManager>();
 	}
+	DUCKDB_SUPPRESS_DEPRECATED_BEGIN
+	for (auto &scan : new_config.replacement_scans) {
+		ReplacementScan::Register(config, std::move(scan));
+	}
+	new_config.replacement_scans.clear();
+	DUCKDB_SUPPRESS_DEPRECATED_END
 	// This is used to open e.g. parquet files. See DBPathAndType::CheckMagicBytes
 	config.callback_manager->Register("__open_file__", OpenFileStorageExtension::Create());
 

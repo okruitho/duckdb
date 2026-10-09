@@ -28,6 +28,7 @@ class PlannerExtension;
 class ProfilerExtension;
 class StorageExtension;
 struct ExtensionCallbackRegistry;
+struct ReplacementScan;
 
 template <class T>
 class ExtensionCallbackIteratorHelper;
@@ -53,6 +54,7 @@ public:
 	void Register(const string &name, shared_ptr<StorageExtension> extension);
 	void Register(shared_ptr<ExtensionCallback> extension);
 	void Register(const string &name, shared_ptr<ProfilerExtension> extension);
+	void Register(ReplacementScan scan);
 
 	ExtensionCallbackIteratorHelper<shared_ptr<OperatorExtension>> OperatorExtensions() const;
 	ExtensionCallbackIteratorHelper<OptimizerExtension> OptimizerExtensions() const;
@@ -60,6 +62,7 @@ public:
 	ExtensionCallbackIteratorHelper<shared_ptr<DialectExtension>> DialectExtensions() const;
 	ExtensionCallbackIteratorHelper<PlannerExtension> PlannerExtensions() const;
 	ExtensionCallbackIteratorHelper<shared_ptr<ExtensionCallback>> ExtensionCallbacks() const;
+	ExtensionCallbackIteratorHelper<shared_ptr<ReplacementScan>> ReplacementScans() const;
 	optional_ptr<StorageExtension> FindStorageExtension(const string &name) const;
 	optional_ptr<GrammarExtension> FindGrammarExtension(const string &name) const;
 	case_insensitive_map_t<shared_ptr<GrammarExtension>> GrammarExtensions() const;

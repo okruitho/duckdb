@@ -167,7 +167,7 @@ public:
 	}
 
 	void RegisterScan(ReplacementScan scan) override {
-		DBConfig::GetConfig(instance).replacement_scans.push_back(std::move(scan));
+		ReplacementScan::Register(DBConfig::GetConfig(instance), std::move(scan));
 	}
 
 private:

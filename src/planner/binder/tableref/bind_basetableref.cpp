@@ -3,6 +3,7 @@
 #include "duckdb/common/string_util.hpp"
 #include "duckdb/main/client_context.hpp"
 #include "duckdb/main/config.hpp"
+#include "duckdb/main/extension_callback_manager.hpp"
 #include "duckdb/main/extension_helper.hpp"
 #include "duckdb/parser/query_node/select_node.hpp"
 #include "duckdb/parser/statement/select_statement.hpp"
@@ -62,12 +63,24 @@ BoundStatement Binder::BindWithReplacementScan(ClientContext &context, BaseTable
 
 	// Then the database-wide ones, including the built-in file scans
 	if (!replacement_function) {
+		for (const auto &scan : ExtensionCallbackManager::Get(context).ReplacementScans()) {
+			if (auto result = scan->function(context, input, scan->data.get())) {
+				replacement_function = std::move(result);
+				break;
+			}
+		}
+	}
+
+	// Then the ones still appended to the deprecated DBConfig list after startup
+	if (!replacement_function) {
+		DUCKDB_SUPPRESS_DEPRECATED_BEGIN
 		for (const auto &scan : DBConfig::GetConfig(context).replacement_scans) {
 			if (auto result = scan.function(context, input, scan.data.get())) {
 				replacement_function = std::move(result);
 				break;
 			}
 		}
+		DUCKDB_SUPPRESS_DEPRECATED_END
 	}
 
 	if (!replacement_function) {

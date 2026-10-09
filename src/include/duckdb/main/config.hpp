@@ -172,6 +172,19 @@ struct DBConfigOptions {
 	bool operator==(const DBConfigOptions &other) const;
 };
 
+//! Silences the deprecation warning where DuckDB itself still has to touch DBConfig::replacement_scans
+#if defined(_MSC_VER)
+#define DUCKDB_SUPPRESS_DEPRECATED_BEGIN __pragma(warning(push)) __pragma(warning(disable : 4996))
+#define DUCKDB_SUPPRESS_DEPRECATED_END   __pragma(warning(pop))
+#elif defined(__GNUC__) || defined(__clang__)
+#define DUCKDB_SUPPRESS_DEPRECATED_BEGIN                                                                               \
+	_Pragma("GCC diagnostic push") _Pragma("GCC diagnostic ignored \"-Wdeprecated-declarations\"")
+#define DUCKDB_SUPPRESS_DEPRECATED_END _Pragma("GCC diagnostic pop")
+#else
+#define DUCKDB_SUPPRESS_DEPRECATED_BEGIN
+#define DUCKDB_SUPPRESS_DEPRECATED_END
+#endif
+
 struct DBConfig {
 	friend class DatabaseInstance;
 	friend class StorageManager;
@@ -182,8 +195,9 @@ public:
 	DUCKDB_API DBConfig(const identifier_map_t<Value> &config_dict, bool read_only);
 	DUCKDB_API ~DBConfig();
 
-	//! Replacement table scans are automatically attempted when a table name cannot be found in the schema
-	vector<ReplacementScan> replacement_scans;
+	//! Replacement table scans are automatically attempted when a table name cannot be found in the schema.
+	//! Deprecated: appending here after the database started races with binding.
+	[[deprecated("Use ReplacementScan::Register instead")]] vector<ReplacementScan> replacement_scans;
 
 	//! The FileSystem to use, can be overwritten to allow for injecting custom file systems for testing purposes (e.g.
 	//! RamFS or something similar)
