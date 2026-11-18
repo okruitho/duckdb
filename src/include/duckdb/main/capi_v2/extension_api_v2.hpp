@@ -1474,6 +1474,16 @@ typedef struct {
 	(duckdb_v2_sql_statement_handle statement, const duckdb_v2_identifier_t *name,
 	 duckdb_v2_column_data_collection_handle collection, const duckdb_v2_identifier_t *column_names, idx_t column_count,
 	 duckdb_v2_error_info_handle *err);
+	DUCKDB_V2_ERROR(*duckdb_v2_alloc)
+	(duckdb_v2_allocator_handle allocator, idx_t size, idx_t align, void **out_ptr, duckdb_v2_error_info_handle *err);
+	DUCKDB_V2_ERROR(*duckdb_v2_alloc_zeroed)
+	(duckdb_v2_allocator_handle allocator, idx_t size, idx_t align, void **out_ptr, duckdb_v2_error_info_handle *err);
+	DUCKDB_V2_ERROR (*duckdb_v2_dealloc)(duckdb_v2_allocator_handle allocator, void *ptr, idx_t size, idx_t align);
+	DUCKDB_V2_ERROR(*duckdb_v2_extension_get_allocator)
+	(duckdb_v2_extension_handle extension, duckdb_v2_allocator_handle *out_allocator, duckdb_v2_error_info_handle *err);
+	DUCKDB_V2_ERROR(*duckdb_v2_realloc)
+	(duckdb_v2_allocator_handle allocator, void *ptr, idx_t old_size, idx_t align, idx_t new_size, void **out_ptr,
+	 duckdb_v2_error_info_handle *err);
 } duckdb_ext_api_v2;
 
 //===--------------------------------------------------------------------===//
@@ -2155,6 +2165,11 @@ inline duckdb_ext_api_v2 CreateAPIv2(void) {
 	result.duckdb_v2_query_metrics_node_get_metric_value = duckdb_v2_query_metrics_node_get_metric_value;
 	result.duckdb_v2_query_metrics_node_get_name = duckdb_v2_query_metrics_node_get_name;
 	result.duckdb_v2_statement_add_collection = duckdb_v2_statement_add_collection;
+	result.duckdb_v2_alloc = duckdb_v2_alloc;
+	result.duckdb_v2_alloc_zeroed = duckdb_v2_alloc_zeroed;
+	result.duckdb_v2_dealloc = duckdb_v2_dealloc;
+	result.duckdb_v2_extension_get_allocator = duckdb_v2_extension_get_allocator;
+	result.duckdb_v2_realloc = duckdb_v2_realloc;
 	return result;
 }
 

@@ -1546,6 +1546,16 @@ typedef struct {
 	(duckdb_v2_sql_statement_handle statement, const duckdb_v2_identifier_t *name,
 	 duckdb_v2_column_data_collection_handle collection, const duckdb_v2_identifier_t *column_names, idx_t column_count,
 	 duckdb_v2_error_info_handle *err);
+	DUCKDB_V2_ERROR(*duckdb_v2_alloc)
+	(duckdb_v2_allocator_handle allocator, idx_t size, idx_t align, void **out_ptr, duckdb_v2_error_info_handle *err);
+	DUCKDB_V2_ERROR(*duckdb_v2_alloc_zeroed)
+	(duckdb_v2_allocator_handle allocator, idx_t size, idx_t align, void **out_ptr, duckdb_v2_error_info_handle *err);
+	DUCKDB_V2_ERROR (*duckdb_v2_dealloc)(duckdb_v2_allocator_handle allocator, void *ptr, idx_t size, idx_t align);
+	DUCKDB_V2_ERROR(*duckdb_v2_extension_get_allocator)
+	(duckdb_v2_extension_handle extension, duckdb_v2_allocator_handle *out_allocator, duckdb_v2_error_info_handle *err);
+	DUCKDB_V2_ERROR(*duckdb_v2_realloc)
+	(duckdb_v2_allocator_handle allocator, void *ptr, idx_t old_size, idx_t align, idx_t new_size, void **out_ptr,
+	 duckdb_v2_error_info_handle *err);
 #endif
 	// capigen:end appended
 } duckdb_ext_api_v2;
@@ -3516,6 +3526,21 @@ typedef struct {
 #endif
 #if DUCKDB_V2_API_ALLOW_UNSTABLE
 #define duckdb_v2_statement_add_collection duckdb_ext_api.duckdb_v2_statement_add_collection
+#endif
+#if DUCKDB_V2_API_ALLOW_UNSTABLE
+#define duckdb_v2_alloc duckdb_ext_api.duckdb_v2_alloc
+#endif
+#if DUCKDB_V2_API_ALLOW_UNSTABLE
+#define duckdb_v2_alloc_zeroed duckdb_ext_api.duckdb_v2_alloc_zeroed
+#endif
+#if DUCKDB_V2_API_ALLOW_UNSTABLE
+#define duckdb_v2_dealloc duckdb_ext_api.duckdb_v2_dealloc
+#endif
+#if DUCKDB_V2_API_ALLOW_UNSTABLE
+#define duckdb_v2_extension_get_allocator duckdb_ext_api.duckdb_v2_extension_get_allocator
+#endif
+#if DUCKDB_V2_API_ALLOW_UNSTABLE
+#define duckdb_v2_realloc duckdb_ext_api.duckdb_v2_realloc
 #endif
 // capigen:end appended
 #endif // DUCKDB_BUILD_STATIC_EXTENSION
